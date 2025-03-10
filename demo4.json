@@ -1,0 +1,55 @@
+context:
+ {
+  "checkpoint_store_name": "checkpoint_store",
+  "config_variables_file_path": "uncommitted/config_variables.yml",
+  "config_version": 4.0,
+  "data_context_id": "1c9616ec-a1d2-4e83-8bf3-721fc56df137",
+  "data_docs_sites": {
+    "local_site": {
+      "class_name": "SiteBuilder",
+      "show_how_to_buttons": true,
+      "store_backend": {
+        "class_name": "TupleFilesystemStoreBackend",
+        "base_directory": "uncommitted/data_docs/local_site/"
+      },
+      "site_index_builder": {
+        "class_name": "DefaultSiteIndexBuilder"
+      }
+    }
+  },
+  "expectations_store_name": "expectations_store",
+  "fluent_datasources": {},
+  "plugins_directory": "plugins/",
+  "stores": {
+    "expectations_store": {
+      "class_name": "ExpectationsStore",
+      "store_backend": {
+        "class_name": "TupleFilesystemStoreBackend",
+        "base_directory": "expectations/"
+      }
+    },
+    "validation_results_store": {
+      "class_name": "ValidationResultsStore",
+      "store_backend": {
+        "class_name": "TupleFilesystemStoreBackend",
+        "base_directory": "uncommitted/validations/"
+      }
+    },
+    "checkpoint_store": {
+      "class_name": "CheckpointStore",
+      "store_backend": {
+        "class_name": "TupleFilesystemStoreBackend",
+        "suppress_store_backend_id": true,
+        "base_directory": "checkpoints/"
+      }
+    },
+    "validation_definition_store": {
+      "class_name": "ValidationDefinitionStore",
+      "store_backend": {
+        "class_name": "TupleFilesystemStoreBackend",
+        "base_directory": "validation_definitions/"
+      }
+    }
+  },
+  "validation_results_store_name": "validation_results_store"
+}

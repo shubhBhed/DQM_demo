@@ -10,9 +10,12 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import argparse
 import shutil
-#import great-expectations as gx
+import great_expectations as gx
+from great_expectations.core.batch import BatchRequest
 
-dqm_kpi_df = pd.read_excel(r"C:\Users\shubham.bhedurkar\Documents\poc\v_dqm_kpi.xlsx", sheet_name="Sheet1")
+
+#dqm_kpi_df = pd.read_excel(r"C:\Users\shubham.bhedurkar\Documents\poc\v_dqm_kpi.xlsx", sheet_name="Sheet1")
+dqm_kpi_df = pd.read_csv("v_dqm_kpi.csv")
 print(dqm_kpi_df)
 # querystring2 = f'select product, pharmacy, week_end_date, nvl (startform_cnt, 0) startform_cnt, nvl (enrollment_cnt, 0) enrollment_cnt, nvl (graduation_cnt, 0)
 # graduation_cnt, nvl (true_grad_cnt, 0) true_grad_cnt, nvl (discontinuation_cnt,0) discontinuation_cnt, nvl (true_discon_cnt,0) true_discon_cnt,
@@ -20,27 +23,63 @@ print(dqm_kpi_df)
 
 # cs. execute (querystring2)
 # dqm_kpi_df = cs. fetch_pandas_all()
-df2 = dqm_kpi_df[dqm_kpi_df['WEEK_END_DATE'] >= (dqm_kpi_df['WEEK_END_DATE'].max()-timedelta(weeks=26))].fillna(0)
+#df2 = dqm_kpi_df[dqm_kpi_df['WEEK_END_DATE'] >= (dqm_kpi_df['WEEK_END_DATE'].max()-timedelta(weeks=26))].fillna(0)
+df2 = dqm_kpi_df.copy()
+print(df2)
 
-zscore = lambda x: (x - x.mean())/x. std()
+zscore = lambda x: (x - x.mean())/x.std()
 
 kpi = df2.copy()
-# kpi.drop ('PHARMACY', axis=1, inplace=True)
-# kpi = kpi. groupby(['PRODUCT','WEEK_END_DATE']).sum ().reset_index().sort_values(['PRODUCT','WEEK_END_DATE'], ascending=[True, False])
+kpi.drop ('PHARMACY', axis=1, inplace=True)
+kpi = kpi.groupby(['PRODUCT','WEEK_END_DATE']).sum().reset_index().sort_values(['PRODUCT','WEEK_END_DATE'], ascending=[True, False])
+
+context = gx.get_context()
+print(type(context))
+print(hasattr(context, "sources"))
+# suite_name = "quantile_suite"
+# context.add_or_update_expectation_suite(expectation_suite_name=suite_name)
+#expectation_suite_name = "my_suite"
+
+#IQR upper and lower bounds for KPIs
+kpi['PRODUCT']=kpi['PRODUCT'].astype('string')    #quanatile issue 
+kpi['STARTFORM_CNT']=kpi['STARTFORM_CNT'].astype('float') 
+kpi['ENROLLMENT_CNT']=kpi['ENROLLMENT_CNT'].astype('float')
+kpi['GRADUATION_ CNT']=kpi['GRADUATION_CNT'].astype('float') 
+kpi['TRUE_GRAD_CNT']=kpi['TRUE_GRAD_CNT'].astype('float')
+kpi['DISCONTINUATION_CNT']=kpi ['DISCONTINUATION_CNT'].astype('float')
+kpi['TRUE_DISCON_CNT']=kpi['TRUE_DISCON_CNT'].astype('float')
+kpi['NEVERSTART_CNT']=kpi['NEVERSTART_CNT'].astype('float')
+
+validator = context.data_sources.pandas_default.read_dataframe(kpi)
+print("validator_type:",validator)
+#validator = context.sources.load_pandas(kpi)
 
 
-# #IQR upper and lower bounds for KPIs
-# kpi['PRODUCT']=kpi['PRODUCT'].astype('string')#quanatile issue 
-# kpi['STARTFORM_CNT']=kpi['STARTFORM_CNT'].astype('float') 
-# kpi['ENROLLMENT_CNT']=kpi['ENROLLMENT_CNT'].astype('float')
-# kpi['GRADUATION_ CNT']=kpi ['GRADUATION_CNT'].astype('float') 
-# kpi['TRUE_GRAD_CNT']=kpi['TRUE _GRAD_CNT'] .astype('float')
-# kpi['DISCONTINUATION_CNT']=kpi ['DISCONTINUATION_CNT'].astype('float')
-# kpi ['TRUE_DISCON_CNT']=kpi['TRUE_DISCON_CNT'].astype('float')
-# kpi ['NEVERSTART_CNT']=kpi ['NEVERSTART_CNT'].astype('float')
+#validator = context.get_validator(batch_data=kpi,data_asset_name="mydataframe")
 
-# q1 = kpi.groupby ('PRODUCT').quantile(.25)
-# q3 = kpi.groupby('PRODUCT').quantile (.75)
+#convert pandas dataframe to great Expectations PandasDataset
+#df_ge = gx.from_pandas(kpi)
+#df_ge = gx.dataset.PandasDataset(df)
+
+#df_ge = gx.dataset.PandasDataset(kpi)
+expectation = gx.expectations.ExpectColumnValuesToBeBetween(
+    column="PRODUCT", quantiles=[0.25]
+)
+
+batch = batch_definition.get_batch(batch_parameters=batch_parameters)
+
+# Test the Expectation
+validation_results = batch.validate(expectation)
+print(validation_results)
+
+q1 = validator.get_column_quantiles("PRODUCT", quantiles=[0.25])
+q3 = validator.get_column_quantiles("PRODUCT", quantiles=[0.75])
+
+print(q1)
+print(q2)
+
+#q1 = kpi.groupby ('PRODUCT').quantile(.25)
+#q3 = kpi.groupby('PRODUCT').quantile(.75)
 # IQR = q3.sub(q1, fill_value=0)
 # lower_bound = q1 - (IQR * 1.5)
 # upper_bound = 93 + (IQR * 1.5)
